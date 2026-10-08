@@ -125,9 +125,13 @@ export const skillGroups = [
 
 const IST_OFFSET_MS = 330 * 60 * 1000;
 
-/** Completed months since `experience.startDate`, counted in India Standard Time. */
+// Total professional experience is counted from this date, which is earlier
+// than the current role's start (`experience.startDate`).
+const experienceCountedFrom = "2024-11-01";
+
+/** Completed months since `experienceCountedFrom`, counted in India Standard Time. */
 export function experienceMonths(now: Date = new Date()) {
-  const [startYear, startMonth] = experience.startDate.split("-").map(Number);
+  const [startYear, startMonth] = experienceCountedFrom.split("-").map(Number);
   const local = new Date(now.getTime() + IST_OFFSET_MS);
   const months =
     (local.getUTCFullYear() - startYear) * 12 + local.getUTCMonth() - (startMonth - 1);
