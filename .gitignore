@@ -49,3 +49,6 @@ next-env.d.ts
 # local tooling
 .prettier-cache
 agent-tools
+
+.vercel
+.env*
