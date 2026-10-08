@@ -21,6 +21,5 @@ jobs:
             --no-progress
             --exclude linkedin\.com
             --exclude localhost
-            --exclude uneizshaikh\.dev
             './content/**/*.mdx' './lib/**/*.ts' './components/**/*.tsx'
           fail: true
