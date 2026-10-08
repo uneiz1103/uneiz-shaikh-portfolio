@@ -40,6 +40,8 @@ tradeoffs: |
   The randomised delays make a run take longer. In exchange, the request rate stays low and long runs complete reliably.
 
   Reading the price from the Buy Box container ties the script to Amazon's page structure. If that layout changes, the selector has to be updated. The "Not Found" fallback means a layout change shows up as missing prices instead of a crashed run.
+
+  Reading prices from product pages also sits outside Amazon's terms of use. For larger or ongoing use, Amazon's Selling Partner API is the supported way to get pricing data, and it would not depend on page layout.
 future: |
   Products are processed one after another, so run time grows with the length of the list. Next steps: save progress so an interrupted run can resume, and record why each product returned "Not Found", so layout changes are easier to spot.
 diagrams:

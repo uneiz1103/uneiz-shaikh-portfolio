@@ -10,23 +10,12 @@ export const site = {
     process.env.NEXT_PUBLIC_SITE_URL ??
     (productionHost ? `https://${productionHost}` : "https://uneizshaikh.dev"),
   description:
-    "Portfolio of Uneiz Shaikh, a software engineer in Mumbai building database-backed applications, automation, and LLM systems.",
+    "Portfolio of Uneiz Shaikh, a software engineer in Mumbai building Python automation, Neo4j graph applications, and RAG and LangGraph systems.",
   email: "uneizshaikh1103@gmail.com" as string | null,
   github: "https://github.com/uneiz1103" as string | null,
   linkedin: "https://linkedin.com/in/uneiz-shaikh/" as string | null,
   availability: "Open to software engineering and AI engineering opportunities.",
-  // Google Drive *file* share link (not a folder), shared as "Anyone with the link".
-  resumeUrl: "https://drive.google.com/file/d/1qHym_-BoolTLa9G1neVE5LoPmw0M-Lts/view?usp=sharing" as
-    | string
-    | null,
 } as const;
-
-export function resumeDownloadUrl(url: string) {
-  const match = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:.*&)?id=)([\w-]+)/);
-  return match
-    ? `https://drive.usercontent.google.com/download?id=${match[1]}&export=download`
-    : url;
-}
 
 export const navItems = [
   { href: "/projects", label: "Work" },

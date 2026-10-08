@@ -32,20 +32,25 @@ export const approach = [
 
 export const tagline = "Building software and AI systems around data.";
 
-export const stats = [
-  { value: "1.8+", label: "Years of professional experience" },
-  { value: "40%+", label: "Less manual processing through automation" },
-  { value: "8h → 2h", label: "Competitor-price run for ~1,000 ASINs" },
-];
+export function getStats() {
+  return [
+    { value: formatExperience("short"), label: "Professional experience" },
+    { value: "40%+", label: "Less manual processing through automation" },
+    { value: "8h → 2h", label: "Competitor-price run for ~1,000 ASINs" },
+  ];
+}
 
-export const aboutSummary =
-  "I'm an IT Engineer in Mumbai with 1.8+ years of professional experience. At work I build Python automation, ETL workflows, and SQL for business data. Outside it, I build software and AI systems: a Neo4j movie application, a RAG pipeline, and a small MCP server.";
+export function getAboutSummary() {
+  return `I'm an IT Engineer in Mumbai with ${formatExperience("long")} of professional experience. At work I build Python automation, ETL workflows, and SQL for business data. Outside it, I build software and AI systems: a Neo4j movie application, a RAG pipeline, and a small MCP server.`;
+}
 
-export const about = [
-  "I'm an IT Engineer in Mumbai with 1.8+ years of professional experience, working across Python automation, ETL workflows, SQL, and software systems.",
-  "Alongside my professional work, I build software and AI systems — including a graph-based movie application with PHP and Neo4j, a retrieval-augmented generation pipeline with LangChain and FAISS, and a Model Context Protocol server built with FastMCP.",
-  "I'm building toward AI engineering through hands-on work with backend systems, databases, automation, vector search, retrieval, and LLM applications. I focus on understanding how these pieces work together to build practical, reliable software.",
-];
+export function getAbout() {
+  return [
+    `I'm an IT Engineer in Mumbai with ${formatExperience("long")} of professional experience, working across Python automation, ETL workflows, SQL, and software systems.`,
+    "Alongside my professional work, I build software and AI systems — including a graph-based movie application with PHP and Neo4j, a retrieval-augmented generation pipeline with LangChain and FAISS, and a Model Context Protocol server built with FastMCP.",
+    "I'm building toward AI engineering through hands-on work with backend systems, databases, automation, vector search, retrieval, and LLM applications. I focus on understanding how these pieces work together to build practical, reliable software.",
+  ];
+}
 
 export const journey = [
   "Software engineering",
@@ -62,6 +67,7 @@ export const experience = {
   role: "IT Engineer",
   company: "Sona Phosphates Ltd.",
   start: "Jan 2025",
+  startDate: "2025-01-01",
   end: "Present",
   location: "Mumbai, India",
   paragraphs: [
@@ -116,3 +122,32 @@ export const skillGroups = [
     items: ["Selenium", "Pandas", "NumPy", "SQLAlchemy", "ETL", "Excel", "Power BI"],
   },
 ];
+
+const IST_OFFSET_MS = 330 * 60 * 1000;
+
+/** Completed months since `experience.startDate`, counted in India Standard Time. */
+export function experienceMonths(now: Date = new Date()) {
+  const [startYear, startMonth] = experience.startDate.split("-").map(Number);
+  const local = new Date(now.getTime() + IST_OFFSET_MS);
+  const months =
+    (local.getUTCFullYear() - startYear) * 12 + local.getUTCMonth() - (startMonth - 1);
+  return Math.max(months, 0);
+}
+
+export function formatExperience(style: "short" | "long", now: Date = new Date()) {
+  const total = experienceMonths(now);
+  const years = Math.floor(total / 12);
+  const months = total % 12;
+
+  if (style === "short") {
+    return [years ? `${years}y` : null, months || !years ? `${months}m` : null]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  const parts = [
+    years ? `${years} ${years === 1 ? "year" : "years"}` : null,
+    months || !years ? `${months} ${months === 1 ? "month" : "months"}` : null,
+  ].filter(Boolean);
+  return parts.join(" and ");
+}

@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { existsSync } from "node:fs";
-import path from "node:path";
 import type { ReactNode } from "react";
 import { IconMapPin } from "@/components/icons";
 import { externalProps, socialLinks } from "@/components/layout/social-links";
 import { DownloadResumeButton } from "@/components/resume/download-button";
-import { education, experience, skillGroups } from "@/lib/profile";
+import { education, experience, formatExperience, skillGroups } from "@/lib/profile";
 import { contextLabel, getPublishedProjects } from "@/lib/content";
-import { resumeDownloadUrl, site } from "@/lib/site";
+import { site } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Resume",
-  description:
-    "Resume of Uneiz Shaikh, IT Engineer in Mumbai with 1.8+ years of experience, moving from software engineering into AI engineering.",
-  alternates: { canonical: "/resume" },
-};
+// Re-render daily so the experience duration stays current.
+export const revalidate = 86400;
+
+export function generateMetadata(): Metadata {
+  return {
+    title: "Resume",
+    description: `Resume of ${site.name}, ${experience.role} in ${site.location} with ${formatExperience("long")} of experience, moving from software engineering into AI engineering.`,
+    alternates: { canonical: "/resume" },
+  };
+}
 
 function ResumeSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -29,12 +31,6 @@ function ResumeSection({ title, children }: { title: string; children: ReactNode
 }
 
 export default function ResumePage() {
-  const pdfPath = path.join(process.cwd(), "public", "uneiz-shaikh-resume.pdf");
-  const pdfHref = existsSync(pdfPath)
-    ? "/uneiz-shaikh-resume.pdf"
-    : site.resumeUrl
-      ? resumeDownloadUrl(site.resumeUrl)
-      : "/resume/download";
   const projects = getPublishedProjects();
 
   return (
@@ -74,7 +70,7 @@ export default function ResumePage() {
               </div>
             </div>
             <DownloadResumeButton
-              pdfHref={pdfHref}
+              pdfHref="/uneiz-shaikh-resume.pdf"
               fileName="Uneiz-Shaikh-Resume.pdf"
             />
           </header>

@@ -7,8 +7,11 @@ import { Skills } from "@/components/home/skills";
 import { IconArrowRight, IconFileText } from "@/components/icons";
 import { JsonLdScript, breadcrumbList } from "@/components/seo/json-ld";
 import { PageHeader, Section } from "@/components/ui/section";
-import { about, education, experience } from "@/lib/profile";
+import { education, experience, getAbout } from "@/lib/profile";
 import { site } from "@/lib/site";
+
+// Re-render daily so the experience duration stays current.
+export const revalidate = 86400;
 
 const description = `About ${site.name}: ${experience.role} in ${site.location}, building database-backed applications, automation, and LLM systems on the path from software engineering to AI engineering.`;
 
@@ -37,7 +40,7 @@ export default function AboutPage() {
       <section className="py-16 md:py-24">
         <div className="container-page grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-16">
           <div className="grid max-w-[65ch] content-start gap-5 text-md text-pretty md:text-lg">
-            {about.map((paragraph, index) => (
+            {getAbout().map((paragraph, index) => (
               <p key={paragraph} className={index === 0 ? "text-ink" : "text-muted"}>
                 {paragraph}
               </p>

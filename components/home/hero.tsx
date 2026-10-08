@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { IconArrowRight, IconFileText, IconMapPin } from "@/components/icons";
-import { experience, hero, skillGroups, stats } from "@/lib/profile";
+import { experience, getStats, hero, skillGroups } from "@/lib/profile";
 import { site } from "@/lib/site";
 
 function CodeCard() {
@@ -111,7 +111,7 @@ export function Hero() {
         </div>
 
         <dl className="animate-in delay-5 mt-14 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-3 md:mt-20 [&>div]:bg-surface/90">
-          {stats.map((stat) => (
+          {getStats().map((stat) => (
             <div key={stat.label} className="flex flex-col-reverse gap-1.5 p-5 md:p-6">
               <dt className="text-caption leading-snug text-muted">{stat.label}</dt>
               <dd className="text-title-lg font-semibold tracking-[-0.03em] md:text-[2rem]">

@@ -1,17 +1,28 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+import { formatExperience } from "../lib/profile";
+
+function publishedSlugs(collection: "projects" | "writing") {
+  const dir = path.join(__dirname, "..", "content", collection);
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".mdx"))
+    .map((file) => readFileSync(path.join(dir, file), "utf8"))
+    .filter((source) => !/^draft:\s*true\s*$/m.test(source))
+    .map((source) => source.match(/^slug:\s*(\S+)\s*$/m)?.[1])
+    .filter((slug): slug is string => Boolean(slug));
+}
+
+const projectSlugs = publishedSlugs("projects");
+const noteSlugs = publishedSlugs("writing");
 
 const routes = [
   "/",
   "/projects",
-  "/projects/movieflix",
-  "/projects/youtube-rag-chatbot",
-  "/projects/amazon-price-automation",
-  "/projects/vector-search",
-  "/projects/mcp-expense-tracker",
+  ...projectSlugs.map((slug) => `/projects/${slug}`),
   "/writing",
-  "/writing/graph-databases-vs-vector-databases",
-  "/writing/building-a-small-mcp-server-with-fastmcp",
+  ...noteSlugs.map((slug) => `/writing/${slug}`),
   "/about",
   "/contact",
   "/resume",
@@ -76,8 +87,23 @@ test("RSS feed lists every note", async ({ request }) => {
   expect(response.headers()["content-type"]).toContain("application/rss+xml");
   const body = await response.text();
   expect(body).toContain("<rss");
-  expect(body).toContain("/writing/graph-databases-vs-vector-databases");
-  expect(body).toContain("/writing/building-a-small-mcp-server-with-fastmcp");
+  for (const slug of noteSlugs) {
+    expect(body).toContain(`/writing/${slug}`);
+  }
+});
+
+test("experience duration is current on the home and about pages", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText(formatExperience("short"), { exact: true })).toBeVisible();
+
+  await page.goto("/about");
+  await expect(page.getByText(`${formatExperience("long")} of professional experience`)).toBeVisible();
+});
+
+test("resume PDF is served", async ({ request }) => {
+  const response = await request.get("/uneiz-shaikh-resume.pdf");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("application/pdf");
 });
 
 test("sitemap and robots are served", async ({ request }) => {

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import {
   PHASE_DEVELOPMENT_SERVER,
   PHASE_PRODUCTION_BUILD,
@@ -30,9 +31,13 @@ const redirectVercelHost =
   process.env.VERCEL_ENV === "production" &&
   process.env.VERCEL_PROJECT_PRODUCTION_URL === canonicalHost;
 
+// Files in public/ are not available to serverless functions when a page is
+// revalidated, so the portrait check runs once at build time.
+const hasPortrait = existsSync(new URL("./public/portrait.jpg", import.meta.url));
+
 /** @type {import("next").NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["@react-pdf/renderer"],
+  env: { NEXT_PUBLIC_HAS_PORTRAIT: hasPortrait ? "1" : "0" },
   async redirects() {
     if (!redirectVercelHost) return [];
     return [

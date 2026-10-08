@@ -1,0 +1,26 @@
+name: Links
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  pull_request:
+    paths: ["content/**", "lib/**", "components/**"]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # LinkedIn answers automated requests with HTTP 999.
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --exclude linkedin\.com
+            --exclude localhost
+            --exclude uneizshaikh\.dev
+            './content/**/*.mdx' './lib/**/*.ts' './components/**/*.tsx'
+          fail: true

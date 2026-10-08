@@ -7,6 +7,9 @@ import { NotesPreview } from "@/components/home/notes-preview";
 import { SelectedWork } from "@/components/home/selected-work";
 import { JsonLd } from "@/components/seo/json-ld";
 
+// Re-render daily so the experience duration stays current.
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };

@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -10,11 +8,11 @@ import {
   IconSparkles,
 } from "@/components/icons";
 import { Section } from "@/components/ui/section";
-import { aboutSummary, experience, journey } from "@/lib/profile";
+import { experience, getAboutSummary, journey } from "@/lib/profile";
 import { site } from "@/lib/site";
 
 export function AboutFacts() {
-  const hasPortrait = existsSync(path.join(process.cwd(), "public", "portrait.jpg"));
+  const hasPortrait = process.env.NEXT_PUBLIC_HAS_PORTRAIT === "1";
 
   const facts = [
     { icon: IconMapPin, label: "Based in", value: site.location },
@@ -94,7 +92,7 @@ export function About() {
     >
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-16">
         <div className="reveal grid max-w-[65ch] content-start gap-7">
-          <p className="text-md text-pretty md:text-lg">{aboutSummary}</p>
+          <p className="text-md text-pretty md:text-lg">{getAboutSummary()}</p>
           <Journey />
           <div>
             <Link href="/about" className="btn btn-ghost group">
