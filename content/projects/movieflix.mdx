@@ -1,0 +1,108 @@
+---
+title: MovieFlix
+slug: movieflix
+summary: A graph-based movie browser built with PHP and Neo4j. It supports title search, six combinable filters, movie detail pages, and SKIP/LIMIT pagination over a 500-movie graph.
+category: software
+context: personal
+format: PHP web application
+placement: featured
+order: 1
+draft: false
+github: https://github.com/uneiz1103/movie-recommendation-system-neo4j-php
+technologies:
+  - PHP 8
+  - Neo4j
+  - Cypher
+  - Laudis Neo4j PHP Client
+  - Composer
+  - phpdotenv
+  - Docker
+highlights:
+  - Six node types and five relationship types, modelled in Neo4j
+  - Filter queries built only from the filters the user selects
+  - Exact title matches ranked above prefix matches
+  - SKIP/LIMIT pagination, 20 movies per page
+overview: |
+  MovieFlix is a movie browser backed by a graph database. It stores 500 movies and the people, genres, languages, and countries connected to them in Neo4j, and it lets a visitor search by title, combine filters, and open a detail page for any movie.
+
+  The goal was to learn graph modelling and Cypher on a dataset where the relationships are the interesting part.
+problem: |
+  Browsing movies by who directed them, who acted in them, and where and in what language they were made means following relationships. In a relational schema that turns into join tables and multi-way joins. I wanted to see how the same questions read when the relationships are stored directly.
+architecture: |
+  The browser sends a GET request to a PHP page. The page calls a repository class, which runs parameterised Cypher through the Laudis Neo4j PHP Client. The client connects to Neo4j over Bolt, using a single shared connection.
+
+  Connection settings come from environment variables loaded with phpdotenv, so credentials stay out of the code. Docker runs the PHP application.
+dataModel: |
+  The graph has six node types: Movie, Director, Actor, Genre, Language, and Country. Five relationship types connect them:
+
+  `(:Director)-[:DIRECTED]->(:Movie)`, `(:Actor)-[:ACTED_IN]->(:Movie)`, `(:Movie)-[:HAS_GENRE]->(:Genre)`, `(:Movie)-[:IN_LANGUAGE]->(:Language)`, and `(:Movie)-[:MADE_IN]->(:Country)`.
+
+  Movies carry their own properties, such as title, release year, rating, and runtime. The detail page collects every connected director, actor, genre, language, and country in one query.
+decisions: |
+  All Cypher lives in one repository class, so the pages never build queries themselves.
+
+  Pagination uses SKIP and LIMIT with a separate count query for the page numbers. MovieFlix does not use cursor pagination. At 500 movies, deep-offset cost is not a concern, and SKIP/LIMIT keeps numbered pages simple.
+
+  Search matches exact titles and title prefixes, case-insensitively. Exact matches sort first, then results sort by rating.
+implementation: |
+  The filter query is assembled from the filters that are actually set. Each active filter adds one MATCH clause for its relationship, and the year filter adds a WHERE condition. `WITH DISTINCT m` then removes duplicates before results are ordered by rating and paged. A matching count query uses the same filters, so the page numbers stay consistent with the results.
+
+  The listing page shows 20 movies per page, with previous and next links and a window of page numbers. It keeps the active search and filter parameters across pages.
+tradeoffs: |
+  SKIP/LIMIT gets slower as the offset grows, because the database still walks past the skipped rows. That is acceptable at this size. A much larger catalogue would need keyset-style pagination.
+
+  Filters run as exact-match lookups on names. That is simple and predictable, but there is no fuzzy matching or full-text search yet.
+future: |
+  The repository is named for recommendations, but recommendations are not built yet. The graph already holds what they would need: movies that share directors, actors, or genres are a short traversal apart. Full-text search is also planned.
+diagrams:
+  - title: Request path
+    kind: pipeline
+    nodes:
+      - id: browser
+        label: Browser
+        detail: Search form, filter sidebar, and paged results.
+      - id: php
+        label: PHP pages
+        detail: index.php for listing and search, movie.php for details.
+      - id: repository
+        label: MovieRepository
+        detail: Parameterised Cypher for search, filters, counts, and details.
+      - id: client
+        label: Laudis Neo4j PHP Client
+        detail: One shared connection, configured from environment variables.
+      - id: neo4j
+        label: Neo4j
+        detail: Connected over Bolt.
+    edges: []
+  - title: Graph model
+    kind: graph
+    nodes:
+      - id: movie
+        label: Movie
+      - id: director
+        label: Director
+      - id: actor
+        label: Actor
+      - id: genre
+        label: Genre
+      - id: language
+        label: Language
+      - id: country
+        label: Country
+    edges:
+      - from: director
+        to: movie
+        label: DIRECTED
+      - from: actor
+        to: movie
+        label: ACTED_IN
+      - from: movie
+        to: genre
+        label: HAS_GENRE
+      - from: movie
+        to: language
+        label: IN_LANGUAGE
+      - from: movie
+        to: country
+        label: MADE_IN
+---

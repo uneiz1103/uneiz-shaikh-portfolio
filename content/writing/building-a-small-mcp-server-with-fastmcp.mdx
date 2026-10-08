@@ -1,0 +1,130 @@
+---
+title: Building a Small MCP Server with FastMCP
+slug: building-a-small-mcp-server-with-fastmcp
+subtitle: "What it takes to turn a SQLite table into tools an LLM can call, and what I would change next."
+description: A walkthrough of a small Model Context Protocol server written with FastMCP. It covers tools, resources, parameterised SQL, and the lessons from building an expense tracker that an MCP client like Claude can use.
+publishedAt: 2026-09-30
+category: AI Engineering
+tags:
+  - MCP
+  - FastMCP
+  - Python
+  - SQLite
+  - LLM Tools
+related:
+  - mcp-expense-tracker
+---
+
+An LLM on its own can talk about your data, but it cannot touch it. It cannot add a row to a table, list last month's entries, or add up a category. The Model Context Protocol (MCP) is a standard way to give a model that ability: a server exposes **tools** and **resources**, and an MCP client, such as Claude, decides when to use them.
+
+To learn how that works in practice, I built a small expense tracker as an MCP server. This note walks through how it is put together, and what I would change next.
+
+## 1. The shape of an MCP server
+
+An MCP server sits between a model and something it could not reach before. In this case, that something is a SQLite database.
+
+<Pipeline
+  title="One request, end to end"
+  steps={[
+    { label: "User request", detail: "\"Add 250 for lunch today.\"" },
+    { label: "MCP client", detail: "The model picks a tool and fills in its arguments." },
+    { label: "FastMCP server", detail: "Runs the matching Python function." },
+    { label: "SQLite", detail: "Parameterised INSERT or SELECT." },
+    { label: "Structured result", detail: "Returned to the model, which writes the reply." },
+  ]}
+/>
+
+The important point is who does what. The **model** decides which tool to call and with what arguments. The **server** only does exactly what each tool says. It never interprets language itself.
+
+## 2. Tools are plain Python functions
+
+FastMCP keeps the server small. You create a server object, and every function decorated with `@mcp.tool()` becomes a tool. The docstring becomes the description the model reads when deciding which tool to use.
+
+```python
+from fastmcp import FastMCP
+
+mcp = FastMCP("ExpenseTracker")
+
+@mcp.tool()
+def add_expense(date, amount, category, subcategory="", note=""):
+    '''Add a new expense entry to the database.'''
+    with sqlite3.connect(DB_PATH) as c:
+        cur = c.execute(
+            "INSERT INTO expenses(date, amount, category, subcategory, note) VALUES (?,?,?,?,?)",
+            (date, amount, category, subcategory, note)
+        )
+        return {"status": "ok", "id": cur.lastrowid}
+```
+
+The server has three tools:
+
+- `add_expense` inserts one entry and returns its new ID.
+- `list_expenses` returns entries between two dates, inclusive.
+- `summarize` totals spending by category for a date range, optionally for one category.
+
+Each tool returns plain dictionaries or lists. The client passes them back to the model, which turns them into a readable answer.
+
+## 3. Resources are data the model can read
+
+Not everything needs to be a tool. A **resource** is read-only data identified by a URI. This server exposes one, the list of expense categories:
+
+```python
+@mcp.resource("expense://categories", mime_type="application/json")
+def categories():
+    with open(CATEGORIES_PATH, "r", encoding="utf-8") as f:
+        return f.read()
+```
+
+The file is read on every request. That costs a small file read each time, but categories can be edited without restarting the server.
+
+<KeyIdea>
+Tools are for actions the model takes. Resources are for context the model reads. Keeping the two apart makes it clearer what a server is allowed to change.
+</KeyIdea>
+
+## 4. Never build SQL from model output
+
+The arguments to a tool come from the model, so they should be treated like any other untrusted input. Every query in the server uses placeholders, and the values are passed separately:
+
+```python
+query = """
+    SELECT category, SUM(amount) AS total_amount
+    FROM expenses
+    WHERE date BETWEEN ? AND ?
+"""
+params = [start_date, end_date]
+
+if category:
+    query += " AND category = ?"
+    params.append(category)
+
+query += " GROUP BY category ORDER BY category ASC"
+```
+
+The optional category filter adds a clause, but its value still goes through a placeholder. The shape of the query changes, and the data never becomes part of the SQL text.
+
+## 5. What I would change next
+
+Building it showed me a few things I would do differently.
+
+**Type hints are part of the interface.** The tool parameters have no type hints, so the schema the model sees does not say that `amount` is a number or that dates are strings. FastMCP builds tool schemas from type hints, so adding them is the cheapest way to make tool calls more reliable.
+
+**Formats are a contract.** Dates are stored as text and compared with `BETWEEN`. That only works if every date uses the same `YYYY-MM-DD` format. Right now, that rule exists only by convention. It should be validated before anything is written.
+
+**Small tools need tests too.** Each tool is a short function, which makes it easy to test directly with a temporary database. That would catch a broken query before a model ever calls it.
+
+<Comparison
+  title="Current version and next version"
+  columns={["Now", "Next"]}
+  rows={[
+    ["Parameters", "Untyped", "Type hints, so FastMCP publishes a typed schema"],
+    ["Dates", "Text, format by convention", "Validated YYYY-MM-DD before insert"],
+    ["Operations", "Add, list, summarise", "Plus edit and delete"],
+    ["Testing", "Manual, through a client", "Unit tests per tool"],
+  ]}
+/>
+
+## 6. Takeaways
+
+An MCP server can be very small and still be useful. Most of the work is not in the protocol, which FastMCP handles. It is in the same places as any backend: clear interfaces, safe queries, validated inputs, and tests.
+
+The source is on [GitHub](https://github.com/uneiz1103/mcp-expense-tracker), and the [project page](/projects/mcp-expense-tracker) has the architecture and trade-offs.

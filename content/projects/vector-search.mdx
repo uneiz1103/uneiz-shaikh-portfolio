@@ -1,0 +1,46 @@
+---
+title: Vector store and retriever experiments
+slug: vector-search
+summary: Hands-on experiments with Chroma, FAISS, and OpenAI embeddings. They cover similarity search with scores, metadata filtering, document updates, and four retrieval strategies compared side by side.
+category: ai
+context: personal
+format: Learning experiments (Python scripts)
+placement: supporting
+order: 4
+draft: false
+github: https://github.com/uneiz1103/Langchain-vector-stores
+technologies:
+  - Python
+  - LangChain
+  - Chroma
+  - FAISS
+  - OpenAI embeddings
+highlights:
+  - Chroma persistence, metadata filtering, updates, and deletes
+  - Similarity search with and without scores
+  - MMR, multi-query, and contextual compression retrievers
+overview: |
+  These are small, deliberate experiments with the retrieval layer that sits underneath RAG. They run over a handful of sample documents, not a production dataset. The aim was to understand how vector stores and retrievers behave before building on them.
+solution: |
+  The vector store experiment uses a persistent Chroma collection with OpenAI embeddings. It adds documents with metadata, runs similarity search with and without scores, filters by metadata, and updates and deletes documents by ID.
+
+  A second set of scripts, in the [langchain-retrievers](https://github.com/uneiz1103/langchain-retrievers) repository, compares retrieval strategies. They cover a plain vector-store retriever, maximal marginal relevance (MMR) for more diverse results, a multi-query retriever that has an LLM rephrase the question, and contextual compression, which trims retrieved passages to the relevant sentences.
+lessons: |
+  Plain similarity search can return near-duplicate passages. MMR trades a little relevance for variety. Multi-query retrieval helps when a question can be phrased several ways, and contextual compression reduces noise before text reaches the prompt. Each of these costs extra computation or extra LLM calls.
+diagrams:
+  - title: Retrieval path
+    kind: pipeline
+    nodes:
+      - id: documents
+        label: Documents with metadata
+      - id: embeddings
+        label: OpenAI embeddings
+      - id: store
+        label: Chroma or FAISS
+      - id: retriever
+        label: Retriever
+        detail: Similarity, MMR, multi-query, or contextual compression.
+      - id: results
+        label: Ranked passages
+    edges: []
+---

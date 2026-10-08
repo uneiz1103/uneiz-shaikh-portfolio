@@ -1,0 +1,90 @@
+---
+title: YouTube transcript RAG
+slug: youtube-rag-chatbot
+summary: A LangChain pipeline that answers questions about a YouTube video from its transcript, using FAISS retrieval, OpenAI embeddings, and gpt-4o-mini.
+category: ai
+context: personal
+format: Python script (no user interface)
+placement: featured
+order: 2
+draft: false
+github: https://github.com/uneiz1103/youtube-chatbot
+technologies:
+  - Python
+  - LangChain
+  - OpenAI API
+  - FAISS
+  - youtube-transcript-api
+highlights:
+  - 1,000-character chunks with 200 characters of overlap
+  - text-embedding-3-small embeddings in a FAISS index
+  - Top-4 similarity retrieval
+  - gpt-4o-mini at temperature 0.2, answering only from retrieved context
+overview: |
+  This project answers questions about a YouTube video using only what is said in it. It fetches the English transcript, indexes it for retrieval, and passes the most relevant passages to an LLM together with the question.
+
+  It is a Python script, not a hosted chatbot. The video ID and the question are set in the code.
+problem: |
+  An LLM asked about a specific video will either not know the content or guess at it. Pasting a whole transcript into every prompt is wasteful and can exceed the context window. Retrieval selects only the passages that matter for each question.
+architecture: |
+  The pipeline has two phases.
+
+  Indexing runs once per video. The transcript is fetched, split into overlapping chunks, embedded, and stored in an in-memory FAISS index.
+
+  Querying runs per question. The retriever finds the four most similar chunks, and those chunks become the context in a prompt. The model generates an answer from that prompt alone.
+technologyChoices: |
+  LangChain's expression language composes the query chain. A `RunnableParallel` step produces the context (retriever, then formatting) and passes the question through unchanged. The result flows into the prompt, the model, and a string output parser.
+
+  FAISS keeps the index in memory, which suits a single transcript with no persistence requirement. `text-embedding-3-small` and `gpt-4o-mini` keep cost low for a small, focused task.
+decisions: |
+  The prompt tells the model to answer only from the provided transcript context and to say it does not know when the context is insufficient. The low temperature (0.2) keeps answers close to the source text.
+
+  Chunks are 1,000 characters with a 200-character overlap. The overlap means a sentence that falls on a boundary still appears whole in at least one chunk.
+
+  If a video has captions disabled, the script reports it and continues with an empty transcript instead of crashing.
+tradeoffs: |
+  The FAISS index lives in memory. That keeps the script simple, with no database to run, but every run fetches and embeds the transcript again, which costs time and embedding calls.
+
+  Retrieval always returns four chunks. That keeps prompts short and predictable, but a question whose answer is spread across the whole video may not get all the context it needs, while a narrow question gets some context it does not need.
+
+  Chunking is by character count, not by timestamp or topic. That is simple and works on any transcript, but a chunk can start in the middle of one idea and end in the middle of the next.
+future: |
+  The script handles one video per run, with the video ID and the question set in the code. It only uses English captions, and answer quality has not been measured against a set of test questions.
+
+  Next steps: take the video URL and the question as input, add a chat interface on top of the chain, persist indexes so a video is not re-embedded on every run, and build a small evaluation set to compare chunk sizes and values of k.
+diagrams:
+  - title: Indexing phase
+    kind: pipeline
+    nodes:
+      - id: transcript
+        label: Fetch transcript
+        detail: youtube-transcript-api, English captions.
+      - id: split
+        label: Split into chunks
+        detail: RecursiveCharacterTextSplitter, 1,000 characters, 200 overlap.
+      - id: embed
+        label: Embed chunks
+        detail: OpenAI text-embedding-3-small.
+      - id: index
+        label: FAISS index
+        detail: In-memory vector store.
+    edges: []
+  - title: Query phase
+    kind: pipeline
+    nodes:
+      - id: question
+        label: Question
+      - id: retrieve
+        label: Retrieve context
+        detail: Similarity search, top 4 chunks.
+      - id: prompt
+        label: Build prompt
+        detail: Answer only from the transcript context.
+      - id: llm
+        label: gpt-4o-mini
+        detail: Temperature 0.2.
+      - id: answer
+        label: Answer
+        detail: Parsed to plain text.
+    edges: []
+---

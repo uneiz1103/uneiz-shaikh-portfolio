@@ -1,0 +1,65 @@
+---
+title: Amazon Buy Box price automation
+slug: amazon-price-automation
+summary: A command-line Python workflow that reads ASINs from Excel, collects Amazon Buy Box prices with headless Selenium, and writes structured Excel output. It cut a run of about 1,000 ASINs from roughly 8 hours to about 2.
+category: automation
+context: professional
+format: Command-line automation
+placement: featured
+order: 3
+draft: false
+github: https://github.com/uneiz1103/amazon-global-price-intelligence
+technologies:
+  - Python
+  - Selenium
+  - Pandas
+  - Excel (openpyxl)
+  - Headless Chrome
+highlights:
+  - Excel in, Excel out, for an analyst-friendly workflow
+  - Buy Box price only, with a clear "Not Found" fallback
+  - Randomised delays between requests
+  - About 8 hours down to about 2 for ~1,000 ASINs
+overview: |
+  This is a command-line automation built for pricing work at my job, not a website. An analyst provides a list of ASINs in Excel. The script visits each product page, extracts the Buy Box price, and writes a new Excel file ready for margin and cross-market comparison.
+problem: |
+  Amazon seller accounts show pricing for the marketplace the account is registered in. Checking competitor Buy Box prices in other marketplaces meant opening product pages by hand, which did not scale to a list of about 1,000 ASINs.
+solution: |
+  Python reads the ASIN column from Excel with Pandas and openpyxl, and cleans the headers and values first. Selenium drives a headless Chrome browser to each product page and reads the price from inside the Buy Box container. If there is no Buy Box price, the row is marked "Not Found" instead of failing the run.
+
+  The marketplace is chosen by domain, such as India, the UK, Saudi Arabia, or Australia. The results are written to a separate output file next to the input.
+decisions: |
+  Only the Buy Box price is extracted, because it is the price most buyers actually see. Randomised waits after each page load and between products keep the request rate low and the run stable. Progress is printed per ASIN, so a long run can be monitored.
+results: |
+  For about 1,000 ASINs, a price check that took about 8 hours by hand now runs in about 2 hours.
+implementation: |
+  The public repository contains the script and a description of the input and output format. It contains no company data, account details, or real product lists.
+tradeoffs: |
+  A real browser is slower than plain HTTP requests, but it loads each product page the way a shopper's browser would.
+
+  The randomised delays make a run take longer. In exchange, the request rate stays low and long runs complete reliably.
+
+  Reading the price from the Buy Box container ties the script to Amazon's page structure. If that layout changes, the selector has to be updated. The "Not Found" fallback means a layout change shows up as missing prices instead of a crashed run.
+future: |
+  Products are processed one after another, so run time grows with the length of the list. Next steps: save progress so an interrupted run can resume, and record why each product returned "Not Found", so layout changes are easier to spot.
+diagrams:
+  - title: Command-line flow
+    kind: pipeline
+    nodes:
+      - id: input
+        label: ASIN list (Excel)
+        detail: About 1,000 product identifiers.
+      - id: pandas
+        label: Pandas
+        detail: Reads and cleans the ASIN column.
+      - id: selenium
+        label: Selenium, headless Chrome
+        detail: Opens each product page with randomised delays.
+      - id: buybox
+        label: Buy Box price
+        detail: Read from the Buy Box container, or "Not Found".
+      - id: output
+        label: Output workbook (Excel)
+        detail: ASIN plus extracted price, for margin analysis.
+    edges: []
+---

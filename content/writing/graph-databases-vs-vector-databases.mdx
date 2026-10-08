@@ -1,0 +1,314 @@
+---
+title: Graph Databases vs Vector Databases
+slug: graph-databases-vs-vector-databases
+subtitle: "Two different ways of working with data: following relationships, and finding similarity in meaning."
+description: A practical introduction to graph databases and vector search, focusing on relationships, semantic similarity, Neo4j, embeddings, and how the two approaches can complement each other.
+publishedAt: 2026-09-29
+category: AI / Data Engineering
+tags:
+  - Neo4j
+  - Graph Database
+  - Vector Database
+  - Vector Search
+  - RAG
+  - AI
+related:
+  - movieflix
+  - youtube-rag-chatbot
+---
+
+Rows and columns handle a huge range of problems well. A table of users, a table of orders, a join between them: for most structured data, that model is exactly right.
+
+Some applications, though, keep asking questions that a table does not express naturally. In my own learning, two kinds of question kept coming up:
+
+<Questions
+  items={[
+    { question: "How is this connected to that?", answer: "Graph database" },
+    { question: "What is similar to this?", answer: "Vector search / vector database" },
+  ]}
+/>
+
+The first question is about **relationships**. The second is about **meaning and similarity**. They lead to two different ways of storing and retrieving information, and this note walks through both, where each one fits, and how they can be used together.
+
+## 1. What is a graph database?
+
+A graph database stores things and the connections between them, and treats both as first-class data. It is built from three pieces:
+
+- **Nodes** are the things: a Person, a Company, a Product, a Movie.
+- **Relationships** are the connections between nodes, and they have a type and a direction: `WORKS_AT`, `KNOWS`, `BOUGHT`, `WATCHED`.
+- **Properties** are extra details stored on nodes or relationships, such as `name: "Alice"` on a person or `since: 2021` on a `WORKS_AT` relationship.
+
+A common way to write this down is a small ASCII pattern, with nodes in parentheses and relationships in brackets:
+
+```text
+(Alice) -[WORKS_AT]-> (Google)
+(Alice) -[KNOWS]->    (Bob)
+(Bob)   -[WORKS_AT]-> (Microsoft)
+```
+
+The important shift is that the connection is not something you reconstruct later with a join. It is stored directly, as data, alongside the things it connects.
+
+## 2. Thinking in connections
+
+A professional network is an easy way to see why that matters. Picture a small slice of one:
+
+<GraphDiagram
+  title="A small professional network"
+  caption="An illustrative example. Nodes are people, a company, and skills; every arrow is a stored relationship."
+  nodes={[
+    { id: "you", label: "You", x: 20, y: 22, primary: true },
+    { id: "alice", label: "Alice", x: 80, y: 22, primary: true },
+    { id: "company", label: "Company A", x: 50, y: 56 },
+    { id: "sql", label: "SQL", x: 16, y: 88 },
+    { id: "python", label: "Python", x: 84, y: 88 },
+  ]}
+  edges={[
+    { from: "you", to: "alice", label: "CONNECTED_TO" },
+    { from: "you", to: "company", label: "WORKS_AT" },
+    { from: "alice", to: "company", label: "WORKS_AT" },
+    { from: "you", to: "sql", label: "HAS_SKILL" },
+    { from: "alice", to: "python", label: "HAS_SKILL" },
+  ]}
+/>
+
+Once the data is shaped like this, a lot of natural questions become a matter of following arrows:
+
+- Who works at the same company as Alice? Start at Alice, follow `WORKS_AT` to the company, then follow `WORKS_AT` back to everyone else.
+- Who in my network has Python skills? Follow `CONNECTED_TO`, then `HAS_SKILL`.
+- Who is connected to me through two or three people? Follow `CONNECTED_TO` two or three hops out.
+
+None of these are impossible with tables, but in a graph the question and the data have the same shape. When relationships are the point of the problem, representing them directly is very useful.
+
+## 3. Meet Neo4j
+
+Neo4j is a graph database designed for connected data. You query it with **Cypher**, a query language built around the same pattern notation used above.
+
+Here is a query that finds where Alice works:
+
+```cypher
+MATCH (alice:Person)-[:WORKS_AT]->(company)
+WHERE alice.name = "Alice"
+RETURN company.name
+```
+
+Reading it line by line:
+
+- `MATCH` describes a pattern: a node labelled `Person`, a `WORKS_AT` relationship pointing out of it, and whatever node sits at the other end, which the query calls `company`.
+- `WHERE` narrows the person down to the one named Alice.
+- `RETURN` gives back the name of the company at the end of that relationship.
+
+This is not meant as a Cypher tutorial. The point is the change in mindset. With SQL, the question tends to be _which row contains this information?_ With a graph, it becomes _how are these things connected?_, and the query is a description of the path you want to walk.
+
+## 4. Where graph databases are useful
+
+The same pattern shows up in many domains where the connections carry most of the value:
+
+- **Social networks**: who knows whom, and through whom.
+- **Recommendations**: people who watched this also watched that.
+- **Fraud detection**: whether suspicious accounts are linked to each other.
+- **Knowledge graphs**: how facts and entities relate.
+- **Supply chains**: which suppliers, products, and warehouses are connected.
+- **Network analysis**: how systems or devices depend on one another.
+
+<KeyIdea>Graph databases are useful when relationships are central to the problem.</KeyIdea>
+
+## 5. What is a vector database?
+
+Vector databases start from a very different idea. A **vector** is simply a list of numbers:
+
+```text
+[0.21, -0.45, 0.87, 0.12, 0.33, ...]
+```
+
+AI models can turn text, images, and other data into vectors like this. These numerical representations are called **embeddings**, and they capture patterns related to the _meaning_ of the original input rather than its exact wording.
+
+<Pipeline
+  title="From text to a vector"
+  steps={[
+    { label: "Text", detail: "A sentence, a paragraph, or a document chunk." },
+    { label: "AI model", detail: "An embedding model reads the input." },
+    { label: "Embedding", detail: "The model's numerical representation of that input." },
+    { label: "Vector", detail: "A list of numbers that can be stored and compared." },
+  ]}
+/>
+
+The mathematics behind this is a subject of its own, and I am deliberately skipping it here. The key idea is enough to reason about the rest of this note: **meaning becomes numbers**, and numbers can be compared.
+
+## 6. The "map of meaning"
+
+A useful way to picture embeddings is as points on a map. Every sentence becomes a point, and sentences with similar meanings tend to land close together.
+
+Take these three questions:
+
+- "How do I reset my password?"
+- "I forgot my login credentials."
+- "How can I change my password?"
+
+They share very few exact words, but they are about the same thing. Their embeddings would sit near each other on the map, and far away from, for example, questions about the weather.
+
+<MeaningMap
+  title="A simplified map of meaning"
+  caption="This is a simplified 2D view for intuition only. Real embeddings have hundreds of dimensions, and distances are measured in that space."
+  clusters={[
+    {
+      label: "Password questions",
+      x: 30,
+      y: 38,
+      points: [
+        "How do I reset my password?",
+        "I forgot my login credentials.",
+        "How can I change my password?",
+      ],
+    },
+    {
+      label: "Weather questions",
+      x: 76,
+      y: 58,
+      muted: true,
+      points: ["Will it rain tomorrow?", "What is the temperature today?"],
+    },
+  ]}
+/>
+
+That closeness is what the rest of the system relies on. If two pieces of text mean similar things, their vectors are near each other, and "near each other" is something a computer can measure.
+
+## 7. How vector search works
+
+Vector search puts that idea to work. When a question arrives, it goes through the same embedding step as the stored data, and the system looks for the stored vectors closest to it:
+
+<Pipeline
+  title="Vector search"
+  steps={[
+    { label: "User question", detail: "Written in the user's own words." },
+    { label: "Create embedding", detail: "The question is converted into a vector." },
+    { label: "Find similar vectors", detail: "Stored vectors closest to the question are selected." },
+    { label: "Return relevant information", detail: "The content behind those vectors is returned." },
+  ]}
+/>
+
+The presentation this note is based on uses a customer-support example. Someone asks _"My account is locked. How can I get back in?"_, and the relevant document is titled _"Steps to recover access when your account is locked."_ The wording is different, but the meaning is close, so vector search can surface it.
+
+That is the core difference from keyword search: vector search looks for **similarity in meaning**, not just matching words.
+
+## 8. Where vector databases are useful
+
+Vector search is a good fit wherever "find me things like this" is the real question:
+
+- **Semantic search**: searching by meaning instead of by keywords.
+- **Retrieval-augmented generation (RAG)**: retrieving relevant information before a language model generates an answer.
+- **Recommendations**: finding similar content or products.
+- **Image search**: finding visually or semantically similar images.
+- **AI assistants**: pulling useful knowledge out of a collection of documents.
+
+<KeyIdea>Vector databases are useful when similarity and meaning matter.</KeyIdea>
+
+## 9. Graph database vs vector database
+
+Put side by side, the two approaches answer different kinds of question:
+
+<Comparison
+  title="Graph vs vector, at a glance"
+  columns={["Graph database", "Vector database"]}
+  rows={[
+    ["Focus", "Relationships", "Similarity"],
+    ["Stores", "Nodes, relationships, and properties", "Embeddings (vectors)"],
+    ["Main question", "How is A connected to B?", "What is similar to this?"],
+    ["Search approach", "Relationship traversal", "Similarity search"],
+    ["Example", "Professional or social network", "Semantic document search"],
+  ]}
+/>
+
+Neither one is a better database in general. They are designed for different questions, and the right choice depends on which question your application actually needs to answer.
+
+## 10. Can graph and vector databases work together?
+
+They can, because they solve different parts of a problem. The presentation illustrates this with an AI assistant that is asked:
+
+> "Why was this customer's order delayed?"
+
+Answering well needs two kinds of context. Vector search can find information that is relevant to the question by meaning. A graph can supply the connections between the entities involved: which customer, which order, which carrier, which shipment.
+
+<Pipeline
+  title="Conceptual flow: vector search and graph context together"
+  steps={[
+    { label: "User question", detail: "\"Why was this customer's order delayed?\"" },
+    { label: "Vector search", detail: "Finds information relevant to the question by meaning." },
+    { label: "Graph database", detail: "Adds relationship context between the entities involved." },
+    { label: "Combined context", detail: "Can support a more informed, grounded AI response." },
+  ]}
+/>
+
+The relationship side of that example looks like this:
+
+<Relations
+  title="Order relationship chain"
+  relations={[
+    ["Customer", "PLACED", "Order"],
+    ["Order", "CONTAINS", "Product"],
+    ["Order", "SHIPPED_BY", "Carrier"],
+    ["Carrier", "DELAYED", "Shipment"],
+  ]}
+/>
+
+Walking that chain explains not just which entities are involved, but how they are connected, which is exactly the part a similarity search alone does not provide.
+
+This is an illustrative architecture from the presentation, not a system I have built. The takeaway is conceptual: graph and vector databases are not necessarily competitors, and they can each handle a different part of the same problem.
+
+## 11. How this connects to my projects
+
+I have worked with each side of this separately, in two projects.
+
+### MovieFlix: the graph side
+
+[MovieFlix](/projects/movieflix) is a graph-based movie browser built with PHP, Neo4j, and Cypher. It uses the Laudis Neo4j PHP Client to talk to Neo4j over Bolt, with Composer for dependencies and Docker to run the PHP application.
+
+The data is modelled as six kinds of connected node, joined by five relationship types:
+
+<GraphDiagram
+  title="MovieFlix graph model"
+  caption="Node labels and relationship types as they appear in the MovieFlix Cypher queries."
+  height={360}
+  nodes={[
+    { id: "movie", label: "Movie", x: 50, y: 42, primary: true },
+    { id: "director", label: "Director", x: 20, y: 8 },
+    { id: "actor", label: "Actor", x: 80, y: 8 },
+    { id: "country", label: "Country", x: 15, y: 78 },
+    { id: "language", label: "Language", x: 85, y: 78 },
+    { id: "genre", label: "Genre", x: 50, y: 94 },
+  ]}
+  edges={[
+    { from: "director", to: "movie", label: "DIRECTED" },
+    { from: "actor", to: "movie", label: "ACTED_IN" },
+    { from: "movie", to: "country", label: "MADE_IN" },
+    { from: "movie", to: "language", label: "IN_LANGUAGE" },
+    { from: "movie", to: "genre", label: "HAS_GENRE" },
+  ]}
+/>
+
+On top of that model, the application supports title search, filtering by any combination of genre, director, actor, year, language, and country, a detail page for each movie, and SKIP/LIMIT pagination. Each filter the visitor selects adds one relationship pattern to the Cypher query, and a repository class keeps all Cypher out of the pages.
+
+### YouTube transcript RAG: the vector side
+
+[YouTube transcript RAG](/projects/youtube-rag-chatbot) applies the retrieval ideas from this note. It is a Python script built with LangChain that answers questions about a video from its transcript:
+
+<Pipeline
+  title="YouTube transcript RAG flow"
+  steps={[
+    "YouTube transcript",
+    "Split into chunks",
+    "OpenAI embeddings",
+    "FAISS index",
+    "Top-4 retrieval",
+    "gpt-4o-mini answer",
+  ]}
+/>
+
+The transcript is split into 1,000-character chunks with 200 characters of overlap. The chunks are embedded with `text-embedding-3-small` and stored in FAISS, and similarity search selects the four chunks most relevant to a question. Those chunks become the only context the language model is allowed to answer from, which is the RAG pattern described in section 8.
+
+## 12. What I took away
+
+While learning Neo4j, I initially thought about databases mainly as systems for storing and retrieving data. Working through graph and vector approaches changed that. How information is represented, and how you search it, matters as much as where it is stored.
+
+Graph databases help an application understand **relationships**. Vector search helps an application find **semantically similar** information. In some AI applications, the two can work together.
+
+The lesson I keep coming back to is a practical one: different problems need different ways of representing and retrieving information, and choosing the representation is part of designing the system.

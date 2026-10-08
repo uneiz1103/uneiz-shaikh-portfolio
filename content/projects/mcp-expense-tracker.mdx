@@ -1,0 +1,62 @@
+---
+title: MCP expense tracker
+slug: mcp-expense-tracker
+summary: A small Model Context Protocol server built with FastMCP. It exposes tools that let an MCP client, such as Claude, add, list, and summarise expenses stored in SQLite.
+category: ai
+context: personal
+format: MCP server (Python)
+placement: supporting
+order: 5
+draft: false
+github: https://github.com/uneiz1103/mcp-expense-tracker
+technologies:
+  - Python
+  - FastMCP
+  - Model Context Protocol
+  - SQLite
+  - uv
+highlights:
+  - Three tools, add_expense, list_expenses, and summarize
+  - One read-only resource, expense://categories
+  - Parameterised SQL queries
+overview: |
+  This is a small server for the Model Context Protocol (MCP), the standard way to give an LLM client access to tools and data. It turns a SQLite expense table into tools the model can call, so a request like "add 250 for lunch today" or "what did I spend on food this month?" becomes a structured database operation.
+architecture: |
+  The server is written with FastMCP. Each tool is a plain Python function registered with a decorator, and its docstring tells the model what the tool does. The MCP client decides when to call a tool and supplies the arguments. The server runs the SQL and returns structured results.
+
+  `add_expense` inserts a row. `list_expenses` returns entries in an inclusive date range. `summarize` groups totals by category, optionally for a single category.
+
+  A resource, `expense://categories`, serves a JSON list of categories. It is read from disk on every request, so the list can change without restarting the server.
+decisions: |
+  Every query is parameterised, so values supplied by the model are never concatenated into SQL. The table is created on startup if it does not exist, so the server runs from an empty directory.
+tradeoffs: |
+  SQLite keeps the server self-contained: one file, no database server, and a good fit for one person's expenses. It is not designed for many users writing at the same time.
+
+  Dates are stored as text, and the date-range tools compare them as text. That works only when every date uses the same `YYYY-MM-DD` format, so the format is effectively part of the contract with the model.
+
+  The categories resource is read from disk on every request. That costs a small file read each time, in exchange for being able to edit categories without restarting the server.
+future: |
+  The tool parameters have no type hints, so the schema the model sees does not say that `amount` is a number or that dates are strings in a set format. Nothing validates the values before they are written, and there are no tools for editing or deleting entries.
+
+  Next steps: add type hints so FastMCP publishes a typed schema, validate dates and amounts, add edit and delete tools, and add tests for each tool.
+diagrams:
+  - title: Tool call flow
+    kind: pipeline
+    nodes:
+      - id: user
+        label: User request
+        detail: Natural language, in an MCP client.
+      - id: client
+        label: MCP client
+        detail: The model picks a tool and its arguments.
+      - id: server
+        label: FastMCP server
+        detail: add_expense, list_expenses, summarize.
+      - id: db
+        label: SQLite
+        detail: One expenses table, parameterised queries.
+      - id: result
+        label: Structured result
+        detail: Returned to the model for its reply.
+    edges: []
+---
