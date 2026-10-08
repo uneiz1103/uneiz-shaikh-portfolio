@@ -43,6 +43,7 @@ export const metadata: Metadata = {
   alternates: {
     types: { "application/rss+xml": [{ url: "/feed.xml", title: `Engineering Notes — ${site.name}` }] },
   },
+  verification: { google: "OkJ0M39JjoanG7yOxBX7elvLcyIf_Da2CHd8pbGUNzs" },
   authors: [{ name: site.name, url: site.domain }],
   creator: site.name,
 };
