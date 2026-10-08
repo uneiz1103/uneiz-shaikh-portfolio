@@ -8,7 +8,7 @@ export const site = {
   location: "Mumbai, India",
   domain:
     process.env.NEXT_PUBLIC_SITE_URL ??
-    (productionHost ? `https://${productionHost}` : "https://uneizshaikh.dev"),
+    (productionHost ? `https://${productionHost}` : "https://uneiz-shaikh.vercel.app"),
   description:
     "Portfolio of Uneiz Shaikh, a software engineer in Mumbai building Python automation, Neo4j graph applications, and RAG and LangGraph systems.",
   email: "uneizshaikh1103@gmail.com" as string | null,

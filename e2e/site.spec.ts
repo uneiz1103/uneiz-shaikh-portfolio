@@ -109,7 +109,7 @@ test("resume PDF is served", async ({ request }) => {
 test("sitemap and robots are served", async ({ request }) => {
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.status()).toBe(200);
-  expect(await sitemap.text()).toContain("https://uneizshaikh.dev/about");
+  expect(await sitemap.text()).toContain("https://uneiz-shaikh.vercel.app/about");
 
   const robots = await request.get("/robots.txt");
   expect(robots.status()).toBe(200);

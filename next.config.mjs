@@ -23,14 +23,6 @@ const contentSecurityPolicy = [
   "frame-ancestors 'none'",
 ].join("; ");
 
-const canonicalHost = "uneizshaikh.dev";
-
-// Vercel sets VERCEL_PROJECT_PRODUCTION_URL to the custom domain once one is
-// attached, so *.vercel.app is only redirected after the domain is live.
-const redirectVercelHost =
-  process.env.VERCEL_ENV === "production" &&
-  process.env.VERCEL_PROJECT_PRODUCTION_URL === canonicalHost;
-
 // Files in public/ are not available to serverless functions when a page is
 // revalidated, so the portrait check runs once at build time.
 const hasPortrait = existsSync(new URL("./public/portrait.jpg", import.meta.url));
@@ -38,17 +30,6 @@ const hasPortrait = existsSync(new URL("./public/portrait.jpg", import.meta.url)
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   env: { NEXT_PUBLIC_HAS_PORTRAIT: hasPortrait ? "1" : "0" },
-  async redirects() {
-    if (!redirectVercelHost) return [];
-    return [
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "(?<subdomain>.+)\\.vercel\\.app" }],
-        destination: `https://${canonicalHost}/:path*`,
-        permanent: true,
-      },
-    ];
-  },
   async headers() {
     return [
       {
