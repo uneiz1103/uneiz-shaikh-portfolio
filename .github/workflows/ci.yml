@@ -43,7 +43,7 @@ jobs:
       - name: Lighthouse
         run: npx -y @lhci/cli@0.15.x autorun
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-report
