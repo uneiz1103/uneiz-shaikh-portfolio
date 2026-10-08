@@ -37,4 +37,4 @@ Missing files are skipped. The build does not require them.
 
 ## Deployment
 
-`main` is production. Other branches are preview deployments. The canonical domain is `https://uneizshaikh.dev`. Point the Vercel project at that apex domain and redirect `www` to it.
+`main` is production. Other branches are preview deployments. The site is served at `https://uneiz-shaikh.vercel.app`. If a custom domain is attached in Vercel, the site uses it automatically for canonical URLs, the sitemap, and social previews.

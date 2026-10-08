@@ -2,4 +2,3 @@
 node_modules
 .velite
 pnpm-lock.yaml
-public/og.png
