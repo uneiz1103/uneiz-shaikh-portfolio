@@ -34,7 +34,7 @@ export const tagline = "Building software and AI systems around data.";
 
 export function getStats() {
   return [
-    { value: formatExperience("short"), label: "Professional experience" },
+    { value: formatExperience("decimal"), label: "Years of professional experience" },
     { value: "40%+", label: "Less manual processing through automation" },
     { value: "8h → 2h", label: "Competitor-price run for ~1,000 ASINs" },
   ];
@@ -134,16 +134,17 @@ export function experienceMonths(now: Date = new Date()) {
   return Math.max(months, 0);
 }
 
-export function formatExperience(style: "short" | "long", now: Date = new Date()) {
+export function formatExperience(style: "decimal" | "long", now: Date = new Date()) {
   const total = experienceMonths(now);
+
+  if (style === "decimal") {
+    // Rounded down to one decimal so the figure never overstates experience.
+    const tenths = Math.floor((total * 10) / 12);
+    return `${tenths % 10 === 0 ? tenths / 10 : (tenths / 10).toFixed(1)}+`;
+  }
+
   const years = Math.floor(total / 12);
   const months = total % 12;
-
-  if (style === "short") {
-    return [years ? `${years}y` : null, months || !years ? `${months}m` : null]
-      .filter(Boolean)
-      .join(" ");
-  }
 
   const parts = [
     years ? `${years} ${years === 1 ? "year" : "years"}` : null,

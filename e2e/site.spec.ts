@@ -94,7 +94,7 @@ test("RSS feed lists every note", async ({ request }) => {
 
 test("experience duration is current on the home and about pages", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText(formatExperience("short"), { exact: true })).toBeVisible();
+  await expect(page.getByText(formatExperience("decimal"), { exact: true })).toBeVisible();
 
   await page.goto("/about");
   await expect(page.getByText(`${formatExperience("long")} of professional experience`)).toBeVisible();
